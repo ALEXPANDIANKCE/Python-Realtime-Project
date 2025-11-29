@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accident & Fire Detection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS for the Loader and other elements (if needed) */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 font-inter">
+    <div class="min-h-screen flex items-center justify-center py-10">
+        <div class="max-w-4xl w-full px-4 md:px-8">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-6 md:mb-10">
+                Accident & Fire Detection
+            </h1>
+
+            <div class="bg-white/5 backdrop-blur-md rounded-xl p-4 md:p-6 shadow-lg border border-white/10 mb-6">
+                <h2 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    System Status
+                    <span id="system-status-icon">
+                        </span>
+                </h2>
+                <div id="status-loading" class="flex items-center gap-2 text-gray-400">
+                    <div class="loader"></div>
+                    Loading status...
+                </div>
+                <div id="status-info" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+                    <div>
+                        <span class="text-sm text-gray-400">System Status:</span>
+                        <span id="system-status" class="text-sm font-medium ml-1"></span>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-400">Camera Connection:</span>
+                        <span id="camera-connection" class="text-sm font-medium ml-1"></span>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-400">Last Update:</span>
+                        <span id="last-update" class="text-sm text-white ml-1"></span>
+                    </div>
+                    <div>
+                        <button id="check-connection-button" class="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 rounded-md px-4 py-2 transition-colors duration-200">
+                            <span id="check-connection-loader" class="mr-2 h-4 w-4 animate-spin hidden"></span>
+                            Check Connection
+                        </button>
+                    </div>
+                </div>
+                <div id="video-feed-container" class="mt-6 hidden">
+                    <h3 class="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M2 7v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7l-8-4-8 4z"></path><path d="M2 10l8 4 8-4"></path></svg>
+                        Live Camera Feed
+                    </h3>
+                    <img id="video-feed" src="/video_feed" alt="Live Video Feed" class="w-full h-auto rounded-md border border-white/10 shadow-lg" />
+                </div>
+            </div>
+
+            <h2 class="text-2xl font-semibold text-white mb-4 md:mb-6">Recent Events</h2>
+            <div id="event-loading" class="bg-white/5 backdrop-blur-md rounded-xl p-6 shadow-lg border border-white/10">
+                <div class="flex items-center gap-3 text-gray-400">
+                    <div class="loader"></div>
+                    Loading events...
+                </div>
+                <div id="event-progress" class="mt-4 hidden">
+                    <div class="bg-gray-700 rounded-full h-2.5">
+                        <div id="progress-bar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="event-error" class="bg-red-500/10 text-red-400 rounded-xl p-4 mb-6 border border-red-500/20 hidden">
+                <div class="flex items-start gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 mt-1">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                        <path d="M12 9v4"></path>
+                        <path d="M12 17h.01"></path>
+                    </svg>
+                    <div id="error-message-title" class="font-semibold">Error</div>
+                    <div id="error-message-description"></div>
+                </div>
+            </div>
+            <div id="event-feed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            <div id="no-events" class="bg-white/5 backdrop-blur-md rounded-xl p-6 shadow-lg border border-white/10 text-center hidden">
+                <p class="text-gray-400">No events detected yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex justify-center gap-4 mt-6">
+        <button id="start-camera" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition">
+            Start Camera
+        </button>
+        <button id="stop-camera" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition">
+            Stop Camera
+        </button>
+    </div>
+
+    <script>
+        // Helper function to format timestamp
+        const formatTimestamp = (timestamp) => {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        };
+
+        // Helper function to get Google Maps URL
+        const getGoogleMapsUrl = (location) => {
+            return `https://maps.app.goo.gl/mzvQ5Jn7oBGb38Se9?q=${location}`;
+        };
+
+        // Function to create an event card HTML element
+        const createEventCard = (event) => {
+            const card = document.createElement('div');
+            card.className = 'bg-white/5 backdrop-blur-md rounded-xl p-4 shadow-lg border border-white/10';
+
+            const icon = document.createElement('div');
+            icon.className = 'flex items-center gap-4 mb-4';
+            icon.innerHTML = event.type === 'Accident'
+                ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-red-500"><path d="M21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>`
+                : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-orange-500"><path d="M12 2v20"></path><path d="m4.93 17.34 1.5-2.6a5 5 0 0 1 6.57-2.35 5 5 0 0 1 6.57 2.35l1.5 2.6"></path><path d="M8.56 12.66a4 4 0 0 1 6.88 0"></path></svg>`;
+            const title = document.createElement('h3');
+            title.className = 'text-lg font-semibold text-white';
+            title.textContent = event.type;
+            icon.appendChild(title);
+
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'mb-4';
+            const image = document.createElement('img');
+            image.src = event.image_url;
+            image.alt = event.type;
+            image.className = 'w-full h-auto rounded-md';
+            imageDiv.appendChild(image);
+
+            const timestampDiv = document.createElement('div');
+            timestampDiv.className = 'mb-2';
+            const timestampLabel = document.createElement('span');
+            timestampLabel.className = 'text-sm text-gray-400';
+            timestampLabel.textContent = 'Timestamp:';
+            const timestampValue = document.createElement('span');
+            timestampValue.className = 'text-sm text-white ml-1';
+            timestampValue.textContent = formatTimestamp(event.timestamp);
+            timestampDiv.appendChild(timestampLabel);
+            timestampDiv.appendChild(timestampValue);
+
+            const locationDiv = document.createElement('div');
+            locationDiv.className = 'mb-4';
+            const locationLabel = document.createElement('span');
+            locationLabel.className = 'text-sm text-gray-400';
+            locationLabel.textContent = 'Location:';
+            const locationLink = document.createElement('a');
+            locationLink.className = 'text-sm text-blue-400 hover:text-blue-300 ml-1 flex items-center gap-1';
+            locationLink.href = getGoogleMapsUrl(event.location);
+            locationLink.target = '_blank';
+            locationLink.rel = 'noopener noreferrer';
+            locationLink.textContent = event.locationName ? event.locationName : 'Loading...';
+
+             const mapPinIcon = document.createElement('svg');
+            mapPinIcon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            mapPinIcon.setAttribute('viewBox', '0 0 24 24');
+            mapPinIcon.setAttribute('fill', 'none');
+            mapPinIcon.setAttribute('stroke', 'currentColor');
+            mapPinIcon.setAttribute('stroke-width', '2');
+            mapPinIcon.setAttribute('stroke-linecap', 'round');
+            mapPinIcon.setAttribute('stroke-linejoin', 'round');
+            mapPinIcon.className = 'w-4 h-4';
+            mapPinIcon.innerHTML = '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle>';
+            locationLink.prepend(mapPinIcon);
+
+            locationDiv.appendChild(locationLabel);
+            locationDiv.appendChild(locationLink);
+
+            card.appendChild(icon);
+            card.appendChild(imageDiv);
+            card.appendChild(timestampDiv);
+            card.appendChild(locationDiv);
+
+            return card;
+        };
+
+        const eventsData = [
+             {
+                id: 1,
+                type: 'Accident',
+                location: '12.9716, 77.5946',
+                timestamp: new Date(Date.now() - 60 * 1000).toISOString(),
+                image_url: 'https://via.placeholder.com/400x300/FF0000/FFFFFF?text=Accident',
+            },
+            {
+                id: 2,
+                type: 'Fire',
+                location: '13.0827, 80.2707',
+                timestamp: new Date(Date.now() - 120 * 1000).toISOString(),
+                image_url: 'https://via.placeholder.com/400x300/FFA500/FFFFFF?text=Fire',
+            },
+            {
+                id: 3,
+                type: 'Accident',
+                location: '12.9716, 77.5946',
+                timestamp: new Date(Date.now() - 300 * 1000).toISOString(),
+                image_url: 'https://via.placeholder.com/400x300/FF0000/FFFFFF?text=Accident',
+            },
+        ];
+
+        const statusData = {
+            status: 'online',
+            camera_connected: true,
+            last_update: new Date().toISOString(),
+        };
+
+        // Simulate fetching data from backend
+        const fetchData = async (endpoint) => {
+            // Simulate an API call with a delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            if (endpoint === '/api/events') {
+                return eventsData;
+            } else if (endpoint === '/api/status') {
+                return statusData;
+            } else if (endpoint.startsWith('/api/geocode')) {
+                 const location = endpoint.split('=')[1];
+                  const [lat, lon] = location.split(',').map(Number);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    return { formatted_address: `Location (${lat.toFixed(4)}, ${lon.toFixed(4)})`};
+                }
+                else{
+                     return { formatted_address: "Invalid Coordinates" };
+                }
+            }
+            else {
+                throw new Error(`Unknown endpoint: ${endpoint}`);
+            }
+        };
+
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const eventFeed = document.getElementById('event-feed');
+            const eventLoading = document.getElementById('event-loading');
+            const eventError = document.getElementById('event-error');
+            const noEvents = document.getElementById('no-events');
+            const progressBarElement = document.getElementById('progress-bar');
+            const statusLoading = document.getElementById('status-loading');
+            const statusInfo = document.getElementById('status-info');
+            const systemStatusElement = document.getElementById('system-status');
+            const cameraConnectionElement = document.getElementById('camera-connection');
+            const lastUpdateElement = document.getElementById('last-update');
+            const checkConnectionButton = document.getElementById('check-connection-button');
+            const checkConnectionLoader = document.getElementById('check-connection-loader');
+            const systemStatusIconElement = document.getElementById('system-status-icon');
+            const eventProgress = document.getElementById('event-progress');
+            const errorMessageTitle = document.getElementById('error-message-title');
+            const errorMessageDescription = document.getElementById('error-message-description');
+            const videoFeedElement = document.getElementById('video-feed');
+            const videoFeedContainer = document.getElementById('video-feed-container');
+
+
+            let loadingProgress = 0;
+            const progressInterval = setInterval(() => {
+                loadingProgress += 10;
+                if (loadingProgress <= 100) {
+                    progressBarElement.style.width = `${loadingProgress}%`;
+                    progressBarElement.setAttribute('aria-valuenow', loadingProgress.toString());
+                }
+            }, 100);
+
+             const updateStatusIcon = (status) => {
+                if (status === 'online') {
+                    systemStatusIconElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-500"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Z"></path><path d="m9 12 2 2 4-4"></path></svg>`;
+                } else {
+                    systemStatusIconElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-red-500"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>`;
+                }
+            };
+
+            // Fetch initial data and set up polling
+            const loadInitialData = async () => {
+                eventLoading.classList.remove('hidden');
+                eventProgress.classList.remove('hidden');
+                eventError.classList.add('hidden');
+                try {
+                    // Fetch both events and system status
+                    const eventsData = await fetchData('/api/events');
+                    const statusData = await fetchData('/api/status');
+
+                    clearInterval(progressInterval);
+                    progressBarElement.style.width = `100%`;
+                    progressBarElement.setAttribute('aria-valuenow', '100');
+
+
+                    // Update UI with events
+                    if (eventsData && eventsData.length > 0) {
+                        eventFeed.innerHTML = '';
+                        eventsData.forEach(event => {
+                            const locationName =  fetchData(`/api/geocode?location=${event.location}`)
+                            .then(data => {
+                                event.locationName = data.formatted_address;
+                                const eventCard = createEventCard(event);
+                                eventFeed.appendChild(eventCard);
+                            })
+                            .catch(error =>{
+                                 const eventCard = createEventCard(event);
+                                 eventFeed.appendChild(eventCard);
+                            })
+
+                        });
+                        noEvents.classList.add('hidden');
+                    } else {
+                        noEvents.classList.remove('hidden');
+                    }
+
+
+
+                    // Update UI with status
+                    statusLoading.classList.add('hidden');
+                    statusInfo.classList.remove('hidden');
+                    systemStatusElement.textContent = statusData.status === 'online' ? 'Online' : 'Offline';
+                    cameraConnectionElement.textContent = statusData.camera_connected ? 'Connected' : 'Disconnected';
+                    lastUpdateElement.textContent = formatTimestamp(statusData.last_update);
+                    updateStatusIcon(statusData.status);
+
+                    //start video stream
+                    if (statusData.camera_connected){
+                         videoFeedElement.src = '/video_feed';
+                         videoFeedContainer.classList.remove('hidden');
+                    }
+                    else{
+                        videoFeedContainer.classList.add('hidden');
+                        videoFeedElement.src = '';
+                    }
+
+                } catch (err) {
+                    clearInterval(progressInterval);
+                    eventLoading.classList.add('hidden');
+                    eventProgress.classList.add('hidden');
+                    eventError.classList.remove('hidden');
+                    errorMessageTitle.textContent = "Error";
+                    errorMessageDescription.textContent = err.message || 'Failed to fetch data';
+                } finally {
+                   // eventLoading.classList.add('hidden');
+                   //  eventProgress.classList.add('hidden');
+                }
+            };
+
+            loadInitialData();
+
+            // Set up polling for status (every 5 seconds)
+            const intervalId = setInterval(async () => {
+                try {
+                    const statusData = await fetchData('/api/status');
+                    systemStatusElement.textContent = statusData.status === 'online' ? 'Online' : 'Offline';
+                    cameraConnectionElement.textContent = statusData.camera_connected ? 'Connected' : 'Disconnected';
+                    lastUpdateElement.textContent = formatTimestamp(statusData.last_update);
+                    updateStatusIcon(statusData.status);
+
+                    //update video feed
+                    if (statusData.camera_connected){
+                         videoFeedElement.src = '/video_feed';
+                         videoFeedContainer.classList.remove('hidden');
+                    }
+                    else{
+                        videoFeedContainer.classList.add('hidden');
+                        videoFeedElement.src = '';
+                    }
+
+                } catch (err) {
+                    console.error("Error fetching status:", err);
+                    //  Don't set error to prevent constant alerts
+                }
+            }, 5000);
+
+            // Event listener for the check connection button
+            checkConnectionButton.addEventListener('click', async () => {
+                checkConnectionLoader.classList.remove('hidden');
+                checkConnectionButton.disabled = true;
+                try {
+                    const statusData = await fetchData('/api/status');
+                    systemStatusElement.textContent = statusData.status === 'online' ? 'Online' : 'Offline';
+                    cameraConnectionElement.textContent = statusData.camera_connected ? 'Connected' : 'Disconnected';
+                    lastUpdateElement.textContent = formatTimestamp(statusData.last_update);
+                    updateStatusIcon(statusData.status);
+                    if (statusData.camera_connected) {
+                        alert("Camera is connected!");
+                    } else {
+                        alert("Camera is disconnected!");
+                    }
+                     //update video feed
+                    if (statusData.camera_connected){
+                         videoFeedElement.src = '/video_feed';
+                         videoFeedContainer.classList.remove('hidden');
+                    }
+                    else{
+                        videoFeedContainer.classList.add('hidden');
+                        videoFeedElement.src = '';
+                    }
+
+                } catch (error) {
+                    alert("Failed to check connection.  Please ensure the server is running.");
+                } finally {
+                    checkConnectionLoader.classList.add('hidden');
+                    checkConnectionButton.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
